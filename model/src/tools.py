@@ -45,6 +45,12 @@ class Toolkit():
     exit(1)
 
   '''
+  DATA PROCESSOR
+  '''
+  def normalize(self, data):
+    return data
+
+  '''
   FILE I/O
   '''
 
