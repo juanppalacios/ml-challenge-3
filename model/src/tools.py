@@ -10,9 +10,12 @@ logging_levels = {
 
 class Toolkit():
   def __init__(self):
+    #> logging utilities
     self.logger    = None
     self.formatter = None
     self.handler   = None
+
+    #> file i/o utilities
 
   def configure(self, name, level = log.DEBUG):
 
@@ -22,11 +25,11 @@ class Toolkit():
 
     self.handler.setFormatter(self.formatter)
     self.logger.addHandler(self.handler)
-
     self.logger.setLevel(level)
 
-  def info(self, message):
-    self.logger.info(message)
+  '''
+  LOGGING
+  '''
 
   def debug(self, message):
     self.logger.debug(message)
@@ -34,6 +37,19 @@ class Toolkit():
   def info(self, message):
     self.logger.info(message)
 
+  def warning(self, message):
+    self.logger.warning(message)
+
   def error_out(self, message):
     self.logger.error(message)
     exit(1)
+
+  '''
+  FILE I/O
+  '''
+
+  def read_input(self, path):
+    pass
+
+  def write_output(self, path, data):
+    pass
