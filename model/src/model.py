@@ -7,6 +7,9 @@ import time
   source: https://towardsdatascience.com/math-neural-network-from-scratch-in-python-d6da9f29ce65
 '''
 
+class Layers():
+  pass
+
 class Model():
   def __init__(self):
     self.debug_mode = False
@@ -24,14 +27,18 @@ class Model():
   def configure(self, debug_mode = False):
     if debug_mode:
       self.debug_mode = debug_mode
-      self.toolkit.configure(name = 'MNIST model', level = logging_levels['DEBUG'])
+      self.toolkit.configure(name = 'MNIST Model', level = logging_levels['DEBUG'])
     else:
-      self.toolkit.configure(name = 'MNIST model', level = logging_levels['INFO'])
+      self.toolkit.configure(name = 'MNIST Model', level = logging_levels['INFO'])
 
     self.toolkit.debug('running in debug mode!')
 
   def add_layer(self):
-    pass
+    self.layers.append()
+    
+  def summary(self):
+    # todo: print out each layer: layer type, output shape, and parameter size
+    ...
 
   def fit(self, x_train, y_train, epochs = 10, learning_rate = 0.01):
     self.x_train = x_train

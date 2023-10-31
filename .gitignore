@@ -1,2 +1,6 @@
 # ignore GitHub repo updates
 *.sh
+*.csv
+
+# ignore our large training and testing data sets
+model/data
