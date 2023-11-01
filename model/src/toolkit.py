@@ -1,5 +1,6 @@
 import numpy   as np
 import logging as log
+from itertools import product
 
 logging_levels = {
   'DEBUG'  : log.DEBUG,
@@ -7,6 +8,28 @@ logging_levels = {
   'WARNING': log.WARNING,
   'ERROR'  : log.ERROR,
 }
+
+class ParameterManager:
+  def __init__(self):
+    self.parameters = {}
+    self.test_cases = []
+
+  def add_parameter(self, arg, values):
+    self.parameters[arg] = values
+    self.test_cases = list(product(*self.parameters.values()))
+
+  def get_parameter(self, arg):
+    # note: removal tag
+    return self.parameters[arg] if arg in self.parameters else None
+
+  def all(self):
+    return self.test_cases
+
+  def __repr__(self):
+    args = '\n'
+    for key, value in self.parameters.items():
+      args += f'\t{key} -> {value}\n'
+    return args
 
 class Toolkit():
   def __init__(self):
@@ -43,6 +66,10 @@ class Toolkit():
   def error_out(self, message):
     self.logger.error(message)
     exit(1)
+    
+  '''
+  
+  '''
 
   '''
   DATA PROCESSOR
