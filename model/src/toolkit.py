@@ -27,8 +27,8 @@ class ParameterManager:
 
   def __repr__(self):
     args = '\n'
-    for key, value in self.parameters.items():
-      args += f'\t{key} -> {value}\n'
+    for case in self.test_cases:
+      args += f'\t{case}\n'
     return args
 
 class Toolkit():
@@ -86,3 +86,51 @@ class Toolkit():
 
   def write_output(self, path, data):
     pass
+
+  def load_data(self, path):
+    pass
+
+  def save_data(self, path, data):
+    pass
+
+
+
+import itertools
+
+# todo: find a way to integrate this to our code
+# note: this code generates our parameter combinations
+if False:
+# Step 1: Define layer configurations
+  num_layers = [2, 3]
+  activation_functions_hidden = ['relu', 'sigmoid']  # Define possible activation functions for hidden layers
+
+  # Define possible total node values for hidden layers as a list
+  hidden_layer_nodes = [64, 32, 16, 8, 4]
+
+  input_nodes = 28*28  # Fixed input layer with 28 nodes
+  output_nodes = 10  # Fixed output layer with 10 nodes
+
+  # Step 2: Use itertools.product to generate combinations
+  encoded_combinations = []
+  for num_hidden_layers in num_layers:
+      activation_combinations = list(itertools.product(activation_functions_hidden, repeat=num_hidden_layers))
+
+      for activation_combo in activation_combinations:
+          # Create a list of (input, output) node tuples for hidden layers, including input and output layers
+          hidden_layer_tuples = [(input_nodes, hidden_layer_nodes[0])]
+          for i in range(num_hidden_layers):
+              final_node = hidden_layer_nodes[i + 1] if i < num_hidden_layers - 1 else output_nodes
+              hidden_layer_tuples.append((hidden_layer_nodes[i], final_node))
+
+          encoded_combination = {
+              'num_hidden_layers': num_hidden_layers,
+              'input_output_nodes_hidden': hidden_layer_tuples,
+              # 'input_nodes': input_nodes,
+              # 'output_nodes': output_nodes,
+              'activation_functions': activation_combo
+          }
+          encoded_combinations.append(encoded_combination)
+
+  # Now, encoded_combinations contains all possible layer configurations with variable numbers of hidden layers
+  for combination in encoded_combinations:
+      print(combination)

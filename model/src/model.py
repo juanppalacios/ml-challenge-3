@@ -1,10 +1,21 @@
+
 from itertools import product
 import numpy as np
-from toolkit import Toolkit, logging_levels
 import time
 
-class Layers():
-  pass
+from toolkit import Toolkit, logging_levels
+
+from activation import ReLU, Sigmoid, Tanh, Softmax
+from layer import Input, Flatten, FullyConnected, Output
+
+activation_keys = {
+  'none'    : None,
+  'relu'    : ReLU(),
+  'sigmoid' : Sigmoid(),
+  'tanh'    : Tanh(),
+  'softmax' : Softmax()
+}
+
 
 class Model():
   def __init__(self):
@@ -18,36 +29,47 @@ class Model():
     self.y_golden = None
 
     self.layers = []
-    self.error  = 0.0
 
+    self.error  = 0.0
 
     self.parameters = None
     self.scores     = {'accuracy' : 0.00, 'parameters' : [None]}
     self.y_pred     = None
 
-
   def configure(self, parameters = None, debug_mode = False):
+
     if debug_mode:
       self.debug_mode = debug_mode
       self.toolkit.configure(name = 'MNIST Model', level = logging_levels['DEBUG'])
+      self.toolkit.debug('running in debug mode!')
     else:
       self.toolkit.configure(name = 'MNIST Model', level = logging_levels['INFO'])
 
-    self.toolkit.debug('running in debug mode!')
-
     self.parameters = parameters
-
     self.scores     = [0.0  for _ in range(len(self.parameters))]
     self.y_test     = [None for _ in range(len(self.parameters))]
 
-    self.toolkit.debug(f'we will store a total of {len(self.scores)} scores and y_tests')
+    for parameter in self.parameters:
+      self.toolkit.info(f'{parameter}')
 
-  def add_layer(self):
-    self.layers.append(None)
+  def set_architecture(self, parameter):
+    self.toolkit.debug(f'according to these parameters: ')
 
-  def summary(self):
-    # todo: print out each layer: layer type, output shape, and parameter size
-    pass
+  def add_input_layer(self, input_size, output_size, activation = None):
+    self.layers.append(Input(input_size, output_size, activation_keys[activation]))
+    self.toolkit.debug(f'added {self.layers[-1]}')
+
+  def add_hidden_layer(self, input_size, output_size, activation = None):
+    self.layers.append(FullyConnected(input_size, output_size, activation_keys[activation]))
+    if self.layers[-2].dimensions()[1] != self.layers[-1].dimensions()[0]:
+      self.toolkit.error_out(f'layer dimension mismatch: {self.layers[-2].dimensions()[1]} != {self.layers[-1].dimensions()[0]}')
+    self.toolkit.debug(f'added {self.layers[-1]}')
+
+  def add_output_layer(self, input_size, output_size, activation = None):
+    self.layers.append(Output(input_size, output_size, activation_keys[activation]))
+    if self.layers[-2].dimensions()[1] != self.layers[-1].dimensions()[0]:
+      self.toolkit.error_out(f'layer dimension mismatch: {self.layers[-2].dimensions()[1]} != {self.layers[-1].dimensions()[0]}')
+    self.toolkit.debug(f'added {self.layers[-1]}')
 
   def fit(self, x_train, y_train, epochs = 10, learning_rate = 0.01):
     self.x_train = x_train
@@ -73,14 +95,16 @@ class Model():
       time.sleep(0.25)
 
   def predict(self, x_test, y_golden = None):
-    self.toolkit.info('predicting output')
-
-  def validate(self):
-    self.toolkit.info('validating model with binary cross-entropy')
+    raise NotImplementedError
 
   def evaluate(self, x_test, y_test):
-    self.toolkit.info('validating model with binary cross-entropy')
-    return self.scores
+    raise NotImplementedError
+
+  def summary(self):
+    summary_str = 'Model Summary:\n'
+    for index, layer in enumerate(self.layers):
+      summary_str += f'\tlayer {index}: {layer}\n'
+    self.toolkit.info(f'{summary_str}')
 
 '''
   References
