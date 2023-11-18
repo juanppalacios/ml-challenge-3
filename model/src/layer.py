@@ -106,9 +106,8 @@ class Output(BaseLayer):
 
 '''
   References
-  
+
   [1] Numpy Neural Network Github Repo
       https://github.com/ddbourgin/numpy-ml/blob/master/numpy_ml/neural_nets/activations/activations.py#L73-L137
-  
 '''
 

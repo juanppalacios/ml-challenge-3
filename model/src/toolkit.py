@@ -1,6 +1,9 @@
+import pandas  as pd
 import numpy   as np
 import logging as log
 from itertools import product
+
+import matplotlib.pyplot as plt
 
 logging_levels = {
   'DEBUG'  : log.DEBUG,
@@ -9,39 +12,13 @@ logging_levels = {
   'ERROR'  : log.ERROR,
 }
 
-class ParameterManager:
-  def __init__(self):
-    self.parameters = {}
-    self.test_cases = []
-
-  def add_parameter(self, arg, values):
-    self.parameters[arg] = values
-    self.test_cases = list(product(*self.parameters.values()))
-
-  def get_parameter(self, arg):
-    # note: removal tag
-    return self.parameters[arg] if arg in self.parameters else None
-
-  def all(self):
-    return self.test_cases
-
-  def __repr__(self):
-    args = '\n'
-    for case in self.test_cases:
-      args += f'\t{case}\n'
-    return args
-
 class Toolkit():
   def __init__(self):
-    #> logging utilities
     self.logger    = None
     self.formatter = None
     self.handler   = None
 
-    #> file i/o utilities
-
   def configure(self, name, level = log.DEBUG):
-
     self.logger    = log.getLogger(f'{name}')
     self.formatter = log.Formatter('%(name)s - %(levelname)s - %(message)s')
     self.handler   = log.StreamHandler()
@@ -49,6 +26,8 @@ class Toolkit():
     self.handler.setFormatter(self.formatter)
     self.logger.addHandler(self.handler)
     self.logger.setLevel(level)
+
+    self.debug("ready to report messages")
 
   '''
   LOGGING
@@ -66,71 +45,35 @@ class Toolkit():
   def error_out(self, message):
     self.logger.error(message)
     exit(1)
-    
-  '''
-  
-  '''
 
   '''
   DATA PROCESSOR
   '''
   def normalize(self, data):
-    return data
+    return (data - np.min(data)) / (np.max(data) - np.min(data))
 
   '''
   FILE I/O
   '''
 
-  def read_input(self, path):
-    pass
+  def visualize(self, data):
+    # Select a few rows (indices) that you want to reshape
+    selected_indices = [0, 1, 2, 3, 4]
 
-  def write_output(self, path, data):
-    pass
+    # Reshape the selected rows to 28x28 images
+    reshaped_images = data[selected_indices].reshape(-1, 28, 28)
 
-  def load_data(self, path):
-    pass
+    # Plot the reshaped images
+    fig, axes = plt.subplots(1, len(selected_indices), figsize=(12, 3))
+
+    for sample, plot in enumerate(axes):
+      plot.imshow(reshaped_images[sample], cmap='gray')
+      plot.axis('on')
+
+    plt.show()
+
+  def load_data(self, path, transpose = True):
+    return pd.read_csv(path).to_numpy().T if transpose else pd.read_csv(path).to_numpy()
 
   def save_data(self, path, data):
-    pass
-
-
-
-import itertools
-
-# todo: find a way to integrate this to our code
-# note: this code generates our parameter combinations
-if False:
-# Step 1: Define layer configurations
-  num_layers = [2, 3]
-  activation_functions_hidden = ['relu', 'sigmoid']  # Define possible activation functions for hidden layers
-
-  # Define possible total node values for hidden layers as a list
-  hidden_layer_nodes = [64, 32, 16, 8, 4]
-
-  input_nodes = 28*28  # Fixed input layer with 28 nodes
-  output_nodes = 10  # Fixed output layer with 10 nodes
-
-  # Step 2: Use itertools.product to generate combinations
-  encoded_combinations = []
-  for num_hidden_layers in num_layers:
-      activation_combinations = list(itertools.product(activation_functions_hidden, repeat=num_hidden_layers))
-
-      for activation_combo in activation_combinations:
-          # Create a list of (input, output) node tuples for hidden layers, including input and output layers
-          hidden_layer_tuples = [(input_nodes, hidden_layer_nodes[0])]
-          for i in range(num_hidden_layers):
-              final_node = hidden_layer_nodes[i + 1] if i < num_hidden_layers - 1 else output_nodes
-              hidden_layer_tuples.append((hidden_layer_nodes[i], final_node))
-
-          encoded_combination = {
-              'num_hidden_layers': num_hidden_layers,
-              'input_output_nodes_hidden': hidden_layer_tuples,
-              # 'input_nodes': input_nodes,
-              # 'output_nodes': output_nodes,
-              'activation_functions': activation_combo
-          }
-          encoded_combinations.append(encoded_combination)
-
-  # Now, encoded_combinations contains all possible layer configurations with variable numbers of hidden layers
-  for combination in encoded_combinations:
-      print(combination)
+    pd.DataFrame(data, columns = ['\"x\"']).to_csv(path, index = False, quotechar = "'")

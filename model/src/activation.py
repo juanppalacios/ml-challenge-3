@@ -128,7 +128,7 @@ class Softmax(BaseActivation):
     super().__init__()
 
   def activate(self, x):
-    e_x = np.exp(x - np.max(x))  # To avoid numerical instability
+    e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
 
   def derivative(self, x):

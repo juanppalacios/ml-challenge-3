@@ -16,11 +16,11 @@ activation_keys = {
   'softmax' : Softmax()
 }
 
-
 class Model():
   def __init__(self):
     self.debug_mode = False
     self.toolkit    = Toolkit()
+    self.toolkit.configure(name = 'MNIST Model', level = logging_levels['INFO'])
 
     self.x_train  = None
     self.y_train  = None
@@ -40,10 +40,8 @@ class Model():
 
     if debug_mode:
       self.debug_mode = debug_mode
-      self.toolkit.configure(name = 'MNIST Model', level = logging_levels['DEBUG'])
+      self.toolkit.configure(name = 'MNIST Model Debugger', level = logging_levels['DEBUG'])
       self.toolkit.debug('running in debug mode!')
-    else:
-      self.toolkit.configure(name = 'MNIST Model', level = logging_levels['INFO'])
 
     self.parameters = parameters
     self.scores     = [0.0  for _ in range(len(self.parameters))]
@@ -98,13 +96,17 @@ class Model():
     raise NotImplementedError
 
   def evaluate(self, x_test, y_test):
-    raise NotImplementedError
+    # raise NotImplementedError
+    pass
 
   def summary(self):
     summary_str = 'Model Summary:\n'
-    for index, layer in enumerate(self.layers):
-      summary_str += f'\tlayer {index}: {layer}\n'
-    self.toolkit.info(f'{summary_str}')
+    if len(self.layers) == 0:
+      self.toolkit.info(f'no layers defined!')
+    else:
+      for index, layer in enumerate(self.layers):
+        summary_str += f'\tlayer {index}: {layer}\n'
+      self.toolkit.info(f'{summary_str}')
 
 '''
   References
@@ -114,4 +116,25 @@ class Model():
   [2] Tensorflow 2 Documentation
       https://www.tensorflow.org/guide/keras/functional_api
   [3] ...
+
+  Slowly integrate calls back in...
+  # mnist_model.configure(
+  #   parameters   = parameters.all(),
+  #   debug_mode   = False
+  # )
+
+  # mnist_model.add_input_layer(784, 64, 'none')
+  # mnist_model.add_hidden_layer(64, 32, 'relu')
+  # mnist_model.add_hidden_layer(32, 16, 'sigmoid')
+  # mnist_model.add_hidden_layer(16, 8, 'tanh')
+  # mnist_model.add_output_layer(8, 10, 'softmax')
+
+  # mnist_model.summary()
+
+  # mnist_model.fit(x_train, y_train, epochs = 10, learning_rate = 0.01)
+
+  # scores = mnist_model.evaluate(x_test, y_test)
+
+  #> reporting our highest score with parameters
+  # tools.info(f'high score of {scores['accuracy']} ran with parameters {scores['parameters']}')
 '''

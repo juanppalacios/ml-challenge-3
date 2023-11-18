@@ -4,3 +4,6 @@
 
 # ignore our large training and testing data sets
 model/data
+
+# ignore .vscode folders
+.vscode/
