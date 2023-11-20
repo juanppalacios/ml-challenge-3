@@ -2,6 +2,11 @@
 *.sh
 *.csv
 
+# ingore any tmp/test files
+model/src/test.py
+model/src/tmp.py
+model/src/runner.py
+
 # ignore our large training and testing data sets
 model/data
 

@@ -1,81 +1,107 @@
 
-from itertools import product
-import numpy as np
 import time
+import numpy as np
+from itertools import product
 
-from toolkit import Toolkit, logging_levels
-
+#> custom imports
+from toolkit import Toolkit
 from activation import ReLU, Sigmoid, Tanh, Softmax
 from layer import Input, Flatten, FullyConnected, Output
 
-activation_keys = {
-  'none'    : None,
-  'relu'    : ReLU(),
-  'sigmoid' : Sigmoid(),
-  'tanh'    : Tanh(),
-  'softmax' : Softmax()
-}
 
 class Model():
   def __init__(self):
+    
+    #> --> internal use
     self.debug_mode = False
     self.toolkit    = Toolkit()
-    self.toolkit.configure(name = 'MNIST Model', level = logging_levels['INFO'])
 
-    self.x_train  = None
-    self.y_train  = None
-    self.x_test   = None
-    self.y_test   = None
-    self.y_golden = None
+    self.activation_keys = {
+      'none'    : None,
+      'relu'    : ReLU(),
+      'sigmoid' : Sigmoid(),
+      'tanh'    : Tanh(),
+      'softmax' : Softmax()
+    }
 
-    self.layers = []
-
-    self.error  = 0.0
-
+    #> --> model.configure()
+    self.layers     = [] # our layers may need to change?
+    # self.layers = {}
     self.parameters = None
-    self.scores     = {'accuracy' : 0.00, 'parameters' : [None]}
-    self.y_pred     = None
 
+    #> --> model.fit()
+    self.train_data   = None # single np array with all data
+    self.train_labels = None # single np array with all labels
+    self.test_data    = None # single np array with all data
+    self.test_labels  = []   # multiple np arrays with all labels --> returns the best one
+    self.test_golden  = None # single np array with all labels --> used for verification
+
+    #> --> model.predict/evaluate()
+    self.scores = [] # {'accuracy' : 0.00, 'parameters' : [None]}
+    # self.y_pred     = None
+    # self.error      = 0.0
+
+  # note: finish this first before fitting training data
   def configure(self, parameters = None, debug_mode = False):
 
-    if debug_mode:
-      self.debug_mode = debug_mode
-      self.toolkit.configure(name = 'MNIST Model Debugger', level = logging_levels['DEBUG'])
+    #> when running in `debug_mode`, spawn a debugger logger, otherwise, keep the model's default logger
+    self.debug_mode = debug_mode
+    if self.debug_mode:
+      self.toolkit.configure(name = 'MNIST Model Debugger', level = 'DEBUG')
       self.toolkit.debug('running in debug mode!')
+    else:
+      self.toolkit.configure(name = 'MNIST Model', level = 'INFO')
 
-    self.parameters = parameters
-    self.scores     = [0.0  for _ in range(len(self.parameters))]
-    self.y_test     = [None for _ in range(len(self.parameters))]
+    if parameters is None:
+      self.toolkit.error_out("configuring a model MUST include parameters!")
 
-    for parameter in self.parameters:
-      self.toolkit.info(f'{parameter}')
+    self.parameters  = parameters
 
-  def set_architecture(self, parameter):
-    self.toolkit.debug(f'according to these parameters: ')
+    # self.test_labels = [np.zeros(1) for _ in range(len(self.parameters))]
+    # self.scores     = [None for _ in range(len(self.parameters))]
+    # self.y_pred     = [None for _ in range(len(self.parameters))]
+
+    #> creating our custom architecture, note: we are HARDCODING for now, may need to switch to KWARGS
+    for case in parameters:
+      # self.toolkit.info(f"test case: {case}")
+      for parameter in case:
+        if isinstance(parameter, list):
+          self.toolkit.info(f"test case: {parameter}")
+          
+          # self.layers.append()
+          
+      break
+
+    self.toolkit.info('model configured')
 
   def add_input_layer(self, input_size, output_size, activation = None):
-    self.layers.append(Input(input_size, output_size, activation_keys[activation]))
+    self.layers.append(Input(input_size, output_size, self.activation_keys[activation]))
     self.toolkit.debug(f'added {self.layers[-1]}')
 
   def add_hidden_layer(self, input_size, output_size, activation = None):
-    self.layers.append(FullyConnected(input_size, output_size, activation_keys[activation]))
+    self.layers.append(FullyConnected(input_size, output_size, self.activation_keys[activation]))
     if self.layers[-2].dimensions()[1] != self.layers[-1].dimensions()[0]:
       self.toolkit.error_out(f'layer dimension mismatch: {self.layers[-2].dimensions()[1]} != {self.layers[-1].dimensions()[0]}')
     self.toolkit.debug(f'added {self.layers[-1]}')
 
   def add_output_layer(self, input_size, output_size, activation = None):
-    self.layers.append(Output(input_size, output_size, activation_keys[activation]))
+    self.layers.append(Output(input_size, output_size, self.activation_keys[activation]))
     if self.layers[-2].dimensions()[1] != self.layers[-1].dimensions()[0]:
       self.toolkit.error_out(f'layer dimension mismatch: {self.layers[-2].dimensions()[1]} != {self.layers[-1].dimensions()[0]}')
     self.toolkit.debug(f'added {self.layers[-1]}')
 
-  def fit(self, x_train, y_train, epochs = 10, learning_rate = 0.01):
-    self.x_train = x_train
-    self.y_train = y_train
 
-    samples = len(x_train)
 
-    #> training loop
+
+
+  # note: under construction
+  def fit(self, train_data, train_labels, epochs = 10, learning_rate = 0.01):
+    self.train_data = train_data
+    self.train_labels = train_labels
+
+    samples = len(train_data)
+
+    # todo: training loop
     self.toolkit.info(f'training our model for {epochs} epochs with learning rate of {learning_rate}')
 
     # note: randomly initialize weights and biases
@@ -92,12 +118,11 @@ class Model():
       self.toolkit.debug(f'epoch {i + 1}/{epochs}, error = {error}')
       time.sleep(0.25)
 
-  def predict(self, x_test, y_golden = None):
+  def predict(self, test_data, test_golden = None):
     raise NotImplementedError
 
-  def evaluate(self, x_test, y_test):
-    # raise NotImplementedError
-    pass
+  def evaluate(self, test_data, test_labels):
+    raise NotImplementedError
 
   def summary(self):
     summary_str = 'Model Summary:\n'
@@ -131,9 +156,9 @@ class Model():
 
   # mnist_model.summary()
 
-  # mnist_model.fit(x_train, y_train, epochs = 10, learning_rate = 0.01)
+  # mnist_model.fit(train_data, train_labels, epochs = 10, learning_rate = 0.01)
 
-  # scores = mnist_model.evaluate(x_test, y_test)
+  # scores = mnist_model.evaluate(test_data, test_labels)
 
   #> reporting our highest score with parameters
   # tools.info(f'high score of {scores['accuracy']} ran with parameters {scores['parameters']}')

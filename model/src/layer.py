@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from activation import BaseActivation, ReLU, Sigmoid, Tanh, Softmax
 import numpy as np
 
+# todo: flush out weights/biases
+
 '''
 ______
 | ___ \
