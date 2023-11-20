@@ -2,9 +2,15 @@ from itertools import product
 
 class ParameterManager:
   def __init__(self):
+    
+    # keeps track of our intenral list
     self.parameters = {}
     self.test_cases = []
     self.sub_test_cases = []
+
+    # class instance iterable index
+    self._index = 0
+
 
   def add_parameter(self, **kwargs):
     '''
@@ -56,8 +62,29 @@ class ParameterManager:
     # update our test_cases
     self.test_cases = self.copy_test_case
 
+  def __iter__(self):
+    '''
+      wraps an iterable around this class
+    '''
+    self._index = 0
+    return self
+
+  def __next__(self):
+    '''
+      calls the next element in our iterable class's internal list object
+    '''
+    if self._index < len(self.test_cases):
+      result = self.test_cases[self._index]
+      self._index += 1
+      return result
+    else:
+      raise StopIteration
+
   def __repr__(self):
+    '''
+      returns a debug-friendly object string representation for all test casess
+    '''
     test_case_str = ''
     for index, case in enumerate(self.test_cases):
-        test_case_str += f"case {index + 1}: {case}\n"
-    return f"test cases:\n{test_case_str}"
+        test_case_str += f"\tcase {index + 1}: {case}\n"
+    return f"\n test cases:\n{test_case_str}"

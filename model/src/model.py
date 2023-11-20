@@ -8,13 +8,19 @@ from toolkit import Toolkit
 from activation import ReLU, Sigmoid, Tanh, Softmax
 from layer import Input, Flatten, FullyConnected, Output
 
-
 class Model():
-  def __init__(self):
-    
+  def __init__(self, debug_mode = False):
+
     #> --> internal use
-    self.debug_mode = False
+    self.debug_mode = debug_mode
     self.toolkit    = Toolkit()
+
+    # when running in `debug_mode`, spawn a debugger logger, otherwise, keep the model's default logger
+    if self.debug_mode:
+      self.toolkit.configure(name = 'MNIST Model Debugger', level = 'DEBUG')
+      self.toolkit.debug('running in debug mode!')
+    else:
+      self.toolkit.configure(name = 'MNIST Model', level = 'INFO')
 
     self.activation_keys = {
       'none'    : None,
@@ -23,6 +29,7 @@ class Model():
       'tanh'    : Tanh(),
       'softmax' : Softmax()
     }
+
 
     #> --> model.configure()
     self.layers     = [] # our layers may need to change?
@@ -42,37 +49,38 @@ class Model():
     # self.error      = 0.0
 
   # note: finish this first before fitting training data
-  def configure(self, parameters = None, debug_mode = False):
-
-    #> when running in `debug_mode`, spawn a debugger logger, otherwise, keep the model's default logger
-    self.debug_mode = debug_mode
-    if self.debug_mode:
-      self.toolkit.configure(name = 'MNIST Model Debugger', level = 'DEBUG')
-      self.toolkit.debug('running in debug mode!')
-    else:
-      self.toolkit.configure(name = 'MNIST Model', level = 'INFO')
+  def configure(self, parameters = None):
+    '''
+      set all the model's relevant training parameters like epoch, learning rate,
+        and neural architecture
+    '''
 
     if parameters is None:
-      self.toolkit.error_out("configuring a model MUST include parameters!")
+      self.toolkit.error_out("model MUST include parameters!")
 
-    self.parameters  = parameters
+    self.parameters = parameters
 
-    # self.test_labels = [np.zeros(1) for _ in range(len(self.parameters))]
-    # self.scores     = [None for _ in range(len(self.parameters))]
-    # self.y_pred     = [None for _ in range(len(self.parameters))]
+    self.toolkit.debug(f"model received the following parameters: {self.parameters}")
 
-    #> creating our custom architecture, note: we are HARDCODING for now, may need to switch to KWARGS
-    for case in parameters:
-      # self.toolkit.info(f"test case: {case}")
-      for parameter in case:
-        if isinstance(parameter, list):
-          self.toolkit.info(f"test case: {parameter}")
-          
-          # self.layers.append()
-          
-      break
 
-    self.toolkit.info('model configured')
+    # note: we can create our layers now or during the fit step, we overwrite our layers
+
+    # create our neural architectures given parameters
+    # for index, test_case in enumerate(self.parameters):
+      # # self.toolkit.info(f"case {index + 1}:  {type(test_case)} {test_case}")
+      # for key, value in test_case.items():
+
+      #   self.toolkit.info(f"{key} -> {value}")
+      # note: for each element in our parameter list, create a unique layer list inside our
+
+
+
+
+
+
+    # self.toolkit.info('model configured')
+
+  # note: anything below this line is under construction
 
   def add_input_layer(self, input_size, output_size, activation = None):
     self.layers.append(Input(input_size, output_size, self.activation_keys[activation]))
@@ -90,33 +98,39 @@ class Model():
       self.toolkit.error_out(f'layer dimension mismatch: {self.layers[-2].dimensions()[1]} != {self.layers[-1].dimensions()[0]}')
     self.toolkit.debug(f'added {self.layers[-1]}')
 
+  def fit(self, train_data = None, train_labels = None):
 
-
-
-
-  # note: under construction
-  def fit(self, train_data, train_labels, epochs = 10, learning_rate = 0.01):
-    self.train_data = train_data
+    self.train_data   = train_data
     self.train_labels = train_labels
 
-    samples = len(train_data)
+    # create our neural architectures given current parameters
+    for index, test_case in enumerate(self.parameters):
+      _epochs = test_case['epochs']
+      _learning_rate = test_case['learning_rate']
+      
+      _samples = 2 # len(train_data)
+      
+
+      # todo: randomly initialize weights and biases
+
+      # todo: create unique layer configuration
+
+      self.toolkit.info(f'training our model for {_epochs} epochs with learning rate of {_learning_rate}')
+
+      for epoch in range(_epochs):
+        _epoch_error = 0.00
+        for j in range(_samples):
+          # todo: forward propagation
+          # todo: error gradient
+          # todo: backward propagation
+          # todo: update weights and biases
+          ...
+        self.toolkit.debug(f'epoch {epoch + 1}/{_epochs}, error = {_epoch_error}')
+        time.sleep(0.25)
+
 
     # todo: training loop
-    self.toolkit.info(f'training our model for {epochs} epochs with learning rate of {learning_rate}')
 
-    # note: randomly initialize weights and biases
-    for i in range(epochs):
-      error = 0.00
-      for j in range(samples):
-        # note: forward propagation
-        pass
-        # note: error gradient
-
-        # note: backward propagation
-
-        # note: update weights and biases
-      self.toolkit.debug(f'epoch {i + 1}/{epochs}, error = {error}')
-      time.sleep(0.25)
 
   def predict(self, test_data, test_golden = None):
     raise NotImplementedError
