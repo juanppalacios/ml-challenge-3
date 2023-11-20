@@ -83,7 +83,7 @@ class Model():
   # note: anything below this line is under construction
 
   def add_input_layer(self, input_size, output_size, activation = None):
-    self.layers.append(Input(input_size, output_size, self.activation_keys[activation]))
+    self.layers.append( Input(input_size, output_size, self.activation_keys[activation]) )
     self.toolkit.debug(f'added {self.layers[-1]}')
 
   def add_hidden_layer(self, input_size, output_size, activation = None):
@@ -105,15 +105,39 @@ class Model():
 
     # create our neural architectures given current parameters
     for index, test_case in enumerate(self.parameters):
+
       _epochs = test_case['epochs']
       _learning_rate = test_case['learning_rate']
-      
+
+      # architecture parameters
+      _neural_architecture = [] # clear this unique model's layer configuration
+      _hidden_layers = test_case['hidden_layers']
+      _hidden_dimensions = test_case['hidden_dimensions']
+      _activations = test_case['activation']
+
       _samples = 2 # len(train_data)
-      
 
       # todo: randomly initialize weights and biases
 
-      # todo: create unique layer configuration
+      # append our input layer
+      _neural_architecture.append(
+        Input(_hidden_dimensions[0][0], _hidden_dimensions[0][0], 'none')
+      )
+
+      # append our hidden layers
+      for new_layer in range(_hidden_layers):
+        _neural_architecture.append(
+          FullyConnected(_hidden_dimensions[new_layer][0], _hidden_dimensions[new_layer][1], self.activation_keys[_activations[new_layer]])
+        )
+
+      # append our output layer
+      _neural_architecture.append(
+        Output(_hidden_dimensions[_hidden_layers][0], _hidden_dimensions[_hidden_layers][1], self.activation_keys[_activations[_hidden_layers]])
+      )
+
+      self.layers = _neural_architecture
+      
+      self.summary()
 
       self.toolkit.info(f'training our model for {_epochs} epochs with learning rate of {_learning_rate}')
 
@@ -125,12 +149,8 @@ class Model():
           # todo: backward propagation
           # todo: update weights and biases
           ...
-        self.toolkit.debug(f'epoch {epoch + 1}/{_epochs}, error = {_epoch_error}')
-        time.sleep(0.25)
-
-
-    # todo: training loop
-
+        # self.toolkit.debug(f'epoch {epoch + 1}/{_epochs}, error = {_epoch_error}')
+        # time.sleep(0.25)
 
   def predict(self, test_data, test_golden = None):
     raise NotImplementedError
