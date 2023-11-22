@@ -62,6 +62,9 @@ class ParameterManager:
     # update our test_cases
     self.test_cases = self.copy_test_case
 
+  def length(self):
+    return len(self.test_cases)
+
   def __iter__(self):
     '''
       wraps an iterable around this class
