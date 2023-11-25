@@ -1,19 +1,11 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from numba import njit, jit, cuda
-from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
-import warnings
-
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-
-import logging;
-logger = logging.getLogger("numba");
-logger.setLevel(logging.ERROR)
 
 # custom imports
 from activation import BaseActivation, ReLU, Sigmoid, Tanh, Softmax
+from optimizer import AdamOptimizer
 
+np.random.seed(0)
 
 '''
 ______
@@ -33,9 +25,6 @@ class BaseLayer():
 
     self.input  = None
     self.output = None
-
-    self.weights = np.random.rand(input_size, output_size) - 0.5
-    self.bias    = np.random.rand(1, output_size) - 0.5
 
   @abstractmethod
   def forward(self):
@@ -72,8 +61,8 @@ class Input(BaseLayer):
     return self.output
 
   def backward(self, output_error, learning_rate):
+    return output_error
     pass
-    # return output_error
 
   def __str__(self):
     return f'Input {super().__str__()}'
@@ -93,23 +82,55 @@ class FullyConnected(BaseLayer):
   def __init__(self, input_size, output_size, activation):
     super().__init__(input_size, output_size, activation)
 
-   # @jit(forceobj=True)
+    # Create an instance of Adam optimizer
+    self.optimizer = AdamOptimizer(beta1=0.9, beta2=0.999, epsilon=1e-8)
+    self.timestep = 0
+
+    self.weights = np.random.rand(input_size, output_size) * 0.01
+    self.bias    = np.random.rand(1, output_size) * 0.01
+
   def forward(self, input):
     self.input  = input
-    self.output = self.activation.activate(np.dot(self.input, self.weights) + self.bias)
+
+    # apply lienar transformation
+    _linear     = np.dot(self.input, self.weights) + self.bias
+
+    # apply non-linear activation
+    self.output = self.activation.activate(_linear)
+
     return self.output
 
-   # @jit(forceobj=True)
   def backward(self, output_gradient, learning_rate):
-    # weight/bias contributiion to our error gradient
+    input_gradient  = np.dot(output_gradient, self.weights.T)
     weight_gradient = np.dot(self.input.T, output_gradient)
-    # bias_gradient   = np.sum(output_gradient, axis = 0)
+    bias_gradient   = np.mean(output_gradient, axis = 1, keepdims = True)
+
+    # increment time step for adam optimizer
+    self.timestep += 1
+
+    # Update parameters using Adam optimizer
+    gradients = {'weights': weight_gradient, 'bias': bias_gradient}
+    parameter_updates = self.optimizer.update(learning_rate, gradients, self.timestep)
 
     # update weights/biases
-    self.weights -= learning_rate * weight_gradient
-    self.bias    -= learning_rate * output_gradient # bias_gradient
+    self.weights -= learning_rate * weight_gradient + parameter_updates['weights']
+    self.bias    -= learning_rate * bias_gradient + parameter_updates['bias']
 
-    return np.dot(output_gradient, self.weights.T) * self.activation.derivative(self.input)
+    # return input_gradient
+    return self.activation.derivative(self.input) * input_gradient
+
+    # # weight/bias contribution wrt to loss
+    # weight_gradient = np.dot(self.input.T, output_gradient)
+    # bias_gradient   = np.mean(output_gradient, axis = 1, keepdims = True)
+
+    # # find input gradient
+    # input_gradient = np.dot(output_gradient, self.weights.T) * self.activation.derivative(self.input)
+
+    # # update weights/biases
+    # self.weights -= learning_rate * weight_gradient
+    # self.bias    -= learning_rate * bias_gradient
+
+    return input_gradient
 
   def __str__(self):
     return f'Fully Connected {super().__str__()}'
@@ -129,23 +150,54 @@ class Output(BaseLayer):
   def __init__(self, input_size, output_size, activation):
     super().__init__(input_size, output_size, activation)
 
-   # @jit(forceobj=True)
+    # Create an instance of Adam optimizer
+    self.optimizer = AdamOptimizer(beta1=0.9, beta2=0.999, epsilon=1e-8)
+    self.timestep = 0
+
+    self.weights = np.random.rand(input_size, output_size) * 0.01
+    self.bias    = np.random.rand(1, output_size) * 0.01
+
   def forward(self, input):
     self.input  = input
-    self.output = self.activation.activate(np.dot(self.input, self.weights) + self.bias)
+
+    # apply lienar transformation
+    _linear     = np.dot(self.input, self.weights) + self.bias
+
+    # apply non-linear activation
+    self.output = self.activation.activate(_linear)
+
     return self.output
 
-   # @jit(forceobj=True)
   def backward(self, output_gradient, learning_rate):
-    # weight/bias contributiion to our error gradient
+    input_gradient  = np.dot(output_gradient, self.weights.T)
     weight_gradient = np.dot(self.input.T, output_gradient)
-    bias_gradient   = np.sum(output_gradient, axis = 0)
+    bias_gradient   = np.mean(output_gradient, axis = 1, keepdims = True)
+
+    # increment time step for adam optimizer
+    self.timestep += 1
+
+    # Update parameters using Adam optimizer
+    gradients = {'weights': weight_gradient, 'bias': bias_gradient}
+    parameter_updates = self.optimizer.update(learning_rate, gradients, self.timestep)
 
     # update weights/biases
-    self.weights -= learning_rate * weight_gradient
-    self.bias    -= learning_rate * output_gradient # bias_gradient
+    self.weights -= learning_rate * weight_gradient + parameter_updates['weights']
+    self.bias    -= learning_rate * bias_gradient + parameter_updates['bias']
 
-    return np.dot(output_gradient, self.weights.T) * self.activation.derivative(self.input)
+    # return input_gradient
+    return self.activation.derivative(self.input) * input_gradient
+    # # weight/bias contribution wrt to loss
+    # weight_gradient = np.dot(self.input.T, output_gradient)
+    # bias_gradient   = np.mean(output_gradient, axis = 1, keepdims = True)
+
+    # # find input gradient
+    # input_gradient = np.dot(output_gradient, self.weights.T) * self.activation.derivative(self.input)
+
+    # # update weights/biases
+    # self.weights -= learning_rate * weight_gradient
+    # self.bias    -= learning_rate * bias_gradient
+
+    return input_gradient
 
   def __str__(self):
     return f'Output {super().__str__()}'

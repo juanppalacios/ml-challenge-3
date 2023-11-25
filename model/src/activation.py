@@ -1,16 +1,5 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from numba import jit, jit, cuda
-from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
-import warnings
-
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-
-import logging;
-logger = logging.getLogger("numba")
-logger.setLevel(logging.ERROR)
-
 
 '''
 ______
@@ -46,12 +35,10 @@ class ReLU(BaseActivation):
   def __init__(self) -> None:
     super().__init__()
 
-   # @jit(forceobj=True)
-  def activate(self, x : np.ndarray):
+  def activate(self, x):
     return np.maximum(x, 0)
 
-   # @jit(forceobj=True)
-  def derivative(self, x : np.ndarray):
+  def derivative(self, x):
     return np.where(x > 0, 1, 0)
 
   def __repr__(self) -> str:
@@ -72,11 +59,11 @@ class Sigmoid(BaseActivation):
   def __init__(self) -> None:
     super().__init__()
 
-   # @jit(forceobj=True)
   def activate(self, x : np.ndarray):
-    return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
+    xmax = np.max(x)
+    return np.exp(x - xmax) / (np.exp(x - xmax) + 1)
+    # return 1 / (1 + np.exp(-x))
 
-   # @jit(forceobj=True)
   def derivative(self, x : np.ndarray):
     return self.activate(x) * (1 - self.activate(x))
 
@@ -96,42 +83,14 @@ class Tanh(BaseActivation):
   def __init__(self) -> None:
     super().__init__()
 
-   # @jit(forceobj=True)
   def activate(self, x):
     return np.tanh(x)
 
-   # @jit(forceobj=True)
   def derivative(self, x):
     return 1 - np.tanh(x) ** 2
 
   def __repr__(self) -> str:
     return "Tanh"
-
-'''
- _____        __ _         _
-/  ___|      / _| |       | |
-\ `--.  ___ | |_| |_ _ __ | |_   _ ___
- `--. \/ _ \|  _| __| '_ \| | | | / __|
-/\__/ / (_) | | | |_| |_) | | |_| \__ \
-\____/ \___/|_|  \__| .__/|_|\__,_|___/
-                    | |
-                    |_|
-'''
-
-class Softplus(BaseActivation):
-  def __init__(self) -> None:
-    super().__init__()
-
-   # @jit(forceobj=True)
-  def activate(self, x):
-    return np.log(1 + np.exp(x))
-
-   # @jit(forceobj=True)
-  def derivative(self, x):
-    return 1 / (1 + np.exp(-x))
-
-  def __repr__(self) -> str:
-    return "Softplus"
 
 '''
  _____        __ _
@@ -146,20 +105,13 @@ class Softmax(BaseActivation):
   def __init__(self) -> None:
     super().__init__()
 
-   # @jit(forceobj=True)
-  def activate(self, x : np.ndarray):
-    exp_x = np.exp(x - np.max(x, axis=-1, keepdims=True))  # Subtracting max(x) for numerical stability
-    return exp_x / np.sum(exp_x, axis=-1, keepdims=True)
-    # e_x = np.exp(x - np.max(x))
-    # return e_x / np.sum(e_x)
+  def activate(self, x):
+    exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    return exp_x / np.sum(exp_x, axis=1, keepdims=True)
 
-   # @jit(forceobj=True)
-  def derivative(self, x : np.ndarray):
-    softmax_output = self.activate(x)
-    tmp = softmax_output * (np.eye(len(softmax_output)) - softmax_output)
-    return np.diagonal(tmp).reshape(1, -1)
-    # s = self.activate(x)
-    # return np.diagonal(np.diag(s) - np.outer(s, s)).reshape(1, -1)
+  def derivative(self, x):
+    s = self.activate(x)
+    return s * (1 - s)
 
   def __repr__(self) -> str:
     return "Softmax"

@@ -6,6 +6,7 @@
   [2] Tensorflow 2 Documentation
       https://www.tensorflow.org/guide/keras/functional_api
   [3] ...
+
 '''
 
 import time
@@ -21,11 +22,13 @@ warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
 
 from rich.progress import track
 
+# np.random.seed(0)
+
 # custom imports
 from toolkit import Toolkit
 from activation import ReLU, Sigmoid, Tanh, Softmax
 from layer import Input, FullyConnected, Output
-from loss import Loss
+from loss import *
 
 class Model():
   def __init__(self, debug_mode = False):
@@ -48,7 +51,17 @@ class Model():
       'softmax' : Softmax()
     }
 
-    self.loss = Loss()
+    self.loss_keys = {
+      'mse'        : mean_square_error,
+      'mse grad'   : mean_square_error_gradient,
+      'cross entropy'      : cross_entropy_error,
+      'cross entropy grad' : cross_entropy_error_gradient,
+      'binary cross entropy'      : binary_cross_entropy_error,
+      'binary cross entropy grad' : binary_cross_entropy_error_gradient,
+    }
+
+    self.loss = None
+    self.loss_gradient = None
 
     #> --> model.configure()
     self.layers     = []
@@ -79,7 +92,9 @@ class Model():
 
     self.toolkit.info('model configured')
 
-  # note: anything below this line is under construction
+  def _set_loss(self, _loss):
+    self.loss = self.loss_keys[_loss]
+    self.loss_gradient = self.loss_keys[f"{_loss} grad"]
 
   def _set_architecture(self, _hidden_layers, _hidden_dimensions, _activations):
     _neural_architecture = [] # clear this unique model's layer configuration
@@ -102,71 +117,131 @@ class Model():
 
     return _neural_architecture
 
-  def _train_model(self):
-    raise NotImplementedError
+  def _train_model(self, _layers, _epochs, _samples, _learning_rate):
+
+    _epoch_history = {'loss': [], 'accuracy': []}
+
+    #> training loop
+    for epoch in range(_epochs):
+      _epoch_loss     = 0
+      _epoch_accuracy = 0
+
+      #> Shuffle the data and labels in the same order
+      _shuffled_indices = np.random.permutation(_samples)
+      _shuffled_data    = self.train_data[_shuffled_indices]
+      _shuffled_labels  = self.train_labels[_shuffled_indices]
+
+      for label, sample in zip(_shuffled_labels, _shuffled_data):
+        label  = np.eye(10)[label]
+        sample = sample.reshape((1, sample.shape[0]))
+
+        #> forward propagation
+        _output = sample
+        for layer in _layers:
+          _output = layer.forward(_output)
+
+        #> finding epoch accuracy
+        _epoch_accuracy += np.argmax(label) == np.argmax(_output)
+
+        #> finding epoch loss and loss gradient
+        _epoch_loss += self.loss(label, _output)
+        _epoch_loss_gradient = self.loss_gradient(label, _output)
+
+        #> backward propagation
+        for layer in reversed(_layers):
+          _epoch_loss_gradient = layer.backward(_epoch_loss_gradient, _learning_rate)
+
+      _epoch_loss     /= _samples
+      _epoch_accuracy = (100 * _epoch_accuracy) / _samples
+      _epoch_history['loss'].append(_epoch_loss)
+      _epoch_history['accuracy'].append(_epoch_accuracy)
+      self.toolkit.info(f'epoch {epoch + 1}/{_epochs}, loss: {_epoch_loss:.1f}, accuracy: {_epoch_accuracy:.1f}%')
+
+    return {
+      'average loss'    : np.mean(_epoch_history['loss']),
+      'average accuracy': np.mean(_epoch_history['accuracy'])
+    }
 
   def fit(self, train_data = None, train_labels = None):
 
     self.train_data   = train_data
     self.train_labels = train_labels
 
-    _samples = 1000 # train_data.shape[0]
+    _samples = 1000
+    # _samples = train_data.shape[0]
     _test_cases = self.parameters.length()
+    self.layers = [[] for _ in range(_test_cases)]
+    self.scores = [None for _ in range(_test_cases)]
 
     # create our neural architectures given current parameters
     for index, test_case in enumerate(self.parameters):
 
+      # run a specific test case, skip the rest
+      _selected_case = test_case['select_case']
+      if _selected_case > -1:
+        if index != _selected_case:
+          continue
+
       # architecture parameters
-      _hidden_layers = test_case['hidden_layers']
+      _hidden_layers     = test_case['hidden_layers']
       _hidden_dimensions = test_case['hidden_dimensions']
-      _activations = test_case['activation']
+      _activations       = test_case['activation']
 
       # learning parameters
-      _epochs = test_case['epochs']
+      _epochs        = test_case['epochs']
       _learning_rate = test_case['learning_rate']
+      _loss          = test_case['loss']
+
+      # set our loss function
+      self._set_loss(_loss)
 
       # set our neural architecture
-      self.layers = self._set_architecture(_hidden_layers, _hidden_dimensions, _activations)
+      self.layers[index] = self._set_architecture(_hidden_layers, _hidden_dimensions, _activations)
 
-      self.toolkit.info(f"training test case {index + 1} of {_test_cases} for {_epochs} epochs, learning rate is {_learning_rate} ")
-      self.summary()
+      self.toolkit.info(f"training case {index + 1}/{_test_cases}: {_epochs} epochs, {_learning_rate} learning rate ({_loss})")
+      self.summary(index)
 
-      #> training loop
-      # for epoch in track(range(_epochs), description = f'test case {index + 1}...'):
-      for epoch in range(_epochs):
-        _epoch_error = 0
-        # _epoch_error_gradient = 0
-        # for sample in track(range(_samples), description = f'train epoch {epoch + 1}...'):
-        for sample in range(_samples):
-          #> forward propagation
-          _output = self.train_data[sample, :].reshape((1, self.train_data.shape[1]))
-          for layer in self.layers:
-            # self.toolkit.debug(f"forward current layer: {layer} input: {type(_output)}")
-            _output = layer.forward(_output)
+      # launch training loop
+      self.scores[index] = self._train_model(self.layers[index], _epochs, _samples, _learning_rate)
+      self.toolkit.info(f"test case summary: {self.scores[index]}")
 
-          #> error gradient
-          _epoch_error += self.loss.error(self.train_labels[sample], _output)
+    #> find the top test case with highest average accuracy
+    if _selected_case == -1:
+      self.index = max(range(len(self.scores)), key = lambda i : self.scores[i]['average accuracy'])
+      self.toolkit.warning(f"highest index is {self.index}")
+    else:
+      self.index = _selected_case
 
-          #> backward propagation
-          _epoch_error_gradient = self.loss.error_gradient(self.train_labels[sample], _output)
-          for layer in reversed(self.layers):
-            # self.toolkit.debug(f"backward current layer: {layer},\nerror gradient: {type(_epoch_error_gradient.shape)}")
-            _epoch_error_gradient = layer.backward(_epoch_error_gradient, _learning_rate)
+  def predict(self, test_data, test_labels = None):
 
-        _epoch_error /= _samples
-        self.toolkit.info(f'epoch {epoch + 1}/{_epochs}, error = {_epoch_error}')
+    self.test_data   = test_data
+    self.test_labels = test_labels
 
-  def predict(self, test_data, test_labels):
-    raise NotImplementedError
+    self.summary(self.index)
+
+    for label, sample in zip(self.test_labels, self.test_data):
+        sample = sample.reshape((1, sample.shape[0]))
+        label  = label.reshape((1, label.shape[0]))
+
+        #> forward propagation
+        _output = sample
+        for layer in self.layers[self.index]:
+          _output = layer.forward(_output)
+
+        #> append our answer
+        label[0] = np.argmax(_output)
+
+    return self.test_labels
 
   def evaluate(self, test_data, test_labels):
     raise NotImplementedError
 
-  def summary(self):
+  def summary(self, index):
     summary_str = '\nModel Summary:\n'
-    if len(self.layers) == 0:
+    case = self.layers[index]
+    if len(case) == 0:
       self.toolkit.info(f'no layers defined!')
     else:
-      for index, layer in enumerate(self.layers):
-        summary_str += f'\tlayer {index}: {layer}\n'
+      for i, layer in enumerate(case):
+        summary_str += f'\tlayer {i}: {layer}\n'
       self.toolkit.info(f'{summary_str}')

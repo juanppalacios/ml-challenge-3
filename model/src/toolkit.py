@@ -2,6 +2,7 @@ import pandas  as pd
 import numpy   as np
 import logging as log
 import matplotlib.pyplot as plt
+import csv
 
 # note: consider splitting our data processor into a separate class
 
@@ -54,7 +55,8 @@ class Toolkit():
   DATA PROCESSOR
   '''
   def normalize(self, data):
-    return (data - np.min(data)) / (np.max(data) - np.min(data))
+    return data.astype('float32') / 255.0
+    # return (data - np.min(data)) / (np.max(data) - np.min(data))
 
   '''
   FILE I/O
@@ -80,4 +82,7 @@ class Toolkit():
     return pd.read_csv(path).to_numpy().T if transpose else pd.read_csv(path).to_numpy()
 
   def save_data(self, path, data):
-    pd.DataFrame(data, columns = ['\"x\"']).to_csv(path, index = False, quotechar = "'")
+    # append our data to be labeled for Kaggle submission
+    id_column = np.array([i+1 for i in range(data.shape[0])])
+    data = np.column_stack((id_column, data))
+    submission = pd.DataFrame(data, columns = ['\"Id\"','\"Expected\"']).to_csv(path, index = False, quotechar = "'")
