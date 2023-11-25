@@ -13,12 +13,9 @@ import time
 from itertools import product
 import numpy as np
 
-from numba import jit, cuda
-from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
-import warnings
-
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
+#> import cross validation librarires
+# from sklearn.model_selection import KFold
+# from sklearn.metrics import accuracy_score
 
 from rich.progress import track
 
@@ -71,7 +68,7 @@ class Model():
     self.train_data   = None # single np array with all data
     self.train_labels = None # single np array with all labels
     self.test_data    = None # single np array with all data
-    self.test_labels  = []   # multiple np arrays with all labels --> returns the best one
+    self.test_labels  = np.zeros((1,1))   # multiple np arrays with all labels --> returns the best one
     self.test_golden  = None # single np array with all labels --> used for verification
 
     #> --> model.predict/evaluate()
@@ -167,8 +164,8 @@ class Model():
     self.train_data   = train_data
     self.train_labels = train_labels
 
-    _samples = 1000
-    # _samples = train_data.shape[0]
+    # _samples = 1000
+    _samples = train_data.shape[0]
     _test_cases = self.parameters.length()
     self.layers = [[] for _ in range(_test_cases)]
     self.scores = [None for _ in range(_test_cases)]
@@ -203,21 +200,40 @@ class Model():
 
       # launch training loop
       self.scores[index] = self._train_model(self.layers[index], _epochs, _samples, _learning_rate)
-      self.toolkit.info(f"test case summary: {self.scores[index]}")
+      # self.toolkit.info(f"test case summary: {self.scores[index]}")
 
     #> find the top test case with highest average accuracy
     if _selected_case == -1:
       self.index = max(range(len(self.scores)), key = lambda i : self.scores[i]['average accuracy'])
-      self.toolkit.warning(f"highest index is {self.index}")
+      self.toolkit.debug(f"highest index is {self.index}")
     else:
       self.index = _selected_case
 
-  def predict(self, test_data, test_labels = None):
+  def evaluate(self, test_data, test_labels):
+    # #> performing cross-validation to assess model performance
+    # k = 5  # You can choose any suitable value for k
+    # kf = KFold(n_splits=k, shuffle=True, random_state=42)
+
+    # #> run cross-validation train and predict loop
+    # for train_index, test_index in kf.split(test_data):
+    #     X_train, X_test = X[train_index], X[test_index]
+    #     y_train, y_test = y[train_index], y[test_index]
+
+    #     # Your model training and evaluation here
+    #     mnist_model.fit(X_train, y_train)
+    #     y_pred = mnist_model.predict(X_test)
+
+    #     # Evaluate the model (use appropriate evaluation metric based on your problem)
+    #     accuracy = accuracy_score(y_test, y_pred)
+    #     self.toolkit.info(f"Accuracy: {accuracy}")
+    raise NotImplementedError
+
+  def predict(self, test_data):
 
     self.test_data   = test_data
-    self.test_labels = test_labels
+    self.test_labels = np.zeros((self.test_data.shape[0], 1))
 
-    self.summary(self.index)
+    # self.summary(self.index)
 
     for label, sample in zip(self.test_labels, self.test_data):
         sample = sample.reshape((1, sample.shape[0]))
@@ -232,9 +248,6 @@ class Model():
         label[0] = np.argmax(_output)
 
     return self.test_labels
-
-  def evaluate(self, test_data, test_labels):
-    raise NotImplementedError
 
   def summary(self, index):
     summary_str = '\nModel Summary:\n'
