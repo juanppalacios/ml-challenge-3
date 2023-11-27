@@ -3,10 +3,6 @@
 
   [1] Neural Networl Architecture inspired by Omar Aflak
       https://towardsdatascience.com/math-neural-network-from-scratch-in-python-d6da9f29ce65
-  [2] Tensorflow 2 Documentation
-      https://www.tensorflow.org/guide/keras/functional_api
-  [3] ...
-
 '''
 
 import time
@@ -109,6 +105,7 @@ class Model():
 
     # append our output layer
     _neural_architecture.append(
+      # Output(_hidden_dimensions[_hidden_layers][0], _hidden_dimensions[_hidden_layers][1], self.activation_keys['tanh'])
       Output(_hidden_dimensions[_hidden_layers][0], _hidden_dimensions[_hidden_layers][1], self.activation_keys[_activations[_hidden_layers]])
     )
 
@@ -150,13 +147,17 @@ class Model():
 
       _epoch_loss     /= _samples
       _epoch_accuracy = (100 * _epoch_accuracy) / _samples
+
       _epoch_history['loss'].append(_epoch_loss)
       _epoch_history['accuracy'].append(_epoch_accuracy)
-      self.toolkit.info(f'epoch {epoch + 1}/{_epochs}, loss: {_epoch_loss:.1f}, accuracy: {_epoch_accuracy:.1f}%')
+
+      self.toolkit.info(f'epoch {epoch + 1}/{_epochs}, loss: {_epoch_loss:.4f}, accuracy: {_epoch_accuracy:.1f}%')
 
     return {
-      'average loss'    : np.mean(_epoch_history['loss']),
-      'average accuracy': np.mean(_epoch_history['accuracy'])
+      'loss history'     : _epoch_history['loss'],
+      'accuracy history' : _epoch_history['accuracy'],
+      'average loss'     : np.mean(_epoch_history['loss']),
+      'average accuracy' : np.mean(_epoch_history['accuracy'])
     }
 
   def fit(self, train_data = None, train_labels = None):
@@ -200,7 +201,8 @@ class Model():
 
       # launch training loop
       self.scores[index] = self._train_model(self.layers[index], _epochs, _samples, _learning_rate)
-      # self.toolkit.info(f"test case summary: {self.scores[index]}")
+      self.toolkit.info(f"test case summary: average loss: {self.scores[index]['average loss']:.4f}, average accuracy: {self.scores[index]['average accuracy']:.1f}%")
+      self.toolkit.plot(np.arange(_epochs), self.scores[index]['loss history'], self.scores[index]['accuracy history'])
 
     #> find the top test case with highest average accuracy
     if _selected_case == -1:
@@ -210,22 +212,6 @@ class Model():
       self.index = _selected_case
 
   def evaluate(self, test_data, test_labels):
-    # #> performing cross-validation to assess model performance
-    # k = 5  # You can choose any suitable value for k
-    # kf = KFold(n_splits=k, shuffle=True, random_state=42)
-
-    # #> run cross-validation train and predict loop
-    # for train_index, test_index in kf.split(test_data):
-    #     X_train, X_test = X[train_index], X[test_index]
-    #     y_train, y_test = y[train_index], y[test_index]
-
-    #     # Your model training and evaluation here
-    #     mnist_model.fit(X_train, y_train)
-    #     y_pred = mnist_model.predict(X_test)
-
-    #     # Evaluate the model (use appropriate evaluation metric based on your problem)
-    #     accuracy = accuracy_score(y_test, y_pred)
-    #     self.toolkit.info(f"Accuracy: {accuracy}")
     raise NotImplementedError
 
   def predict(self, test_data):
@@ -233,7 +219,8 @@ class Model():
     self.test_data   = test_data
     self.test_labels = np.zeros((self.test_data.shape[0], 1))
 
-    # self.summary(self.index)
+    self.toolkit.info(f"model prediction based off of the following neural architecture:")
+    self.summary(self.index)
 
     for label, sample in zip(self.test_labels, self.test_data):
         sample = sample.reshape((1, sample.shape[0]))

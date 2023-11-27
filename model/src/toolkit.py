@@ -64,6 +64,7 @@ class Toolkit():
 
   def visualize(self, data):
     # Select a few rows (indices) that you want to reshape
+    # selected_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     selected_indices = [0, 1, 2, 3, 4]
 
     # Reshape the selected rows to 28x28 images
@@ -76,6 +77,30 @@ class Toolkit():
       plot.imshow(reshaped_images[sample], cmap='gray')
       plot.axis('on')
 
+    plt.show()
+
+  def plot(self, x, y1, y2):
+
+    figs, axs = plt.subplots(1, 2, figsize=(12,3))
+
+    # Plot for y1
+    axs[0].plot(x, y1, label='loss')
+    axs[0].set_xlabel('epochs')
+    axs[0].set_ylabel('loss')
+    axs[0].set_title('loss history over epochs')
+    axs[0].legend()
+
+    # Plot for y2
+    axs[1].plot(x, y2, label='accuracy')
+    axs[1].set_xlabel('epochs')
+    axs[1].set_ylabel('accuracy')
+    axs[1].set_title('accuracy history over epochs')
+    axs[1].legend()
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
+    # Show the plot
     plt.show()
 
   def load_data(self, path, transpose = True):

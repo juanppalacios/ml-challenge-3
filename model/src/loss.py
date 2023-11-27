@@ -32,17 +32,21 @@ def mean_square_error(target, predicted):
 def mean_square_error_gradient(target, predicted):
   return 2 * (predicted - target)
 
-def cross_entropy_error(target, predicted, epsilon = 1e-10):
+def cross_entropy_error(target, predicted, epsilon=1e-10):
   predicted = np.clip(predicted, epsilon, 1 - epsilon)
-  losses    = -np.sum(target * np.log(predicted), axis = 1)
+  losses = -np.sum(target * np.log(predicted + epsilon), axis=1)
   return np.mean(losses)
 
-def cross_entropy_error_gradient(target, predicted, epsilon = 1e-10):
-  return -target / np.clip(predicted, epsilon, 1 - epsilon)
+def cross_entropy_error_gradient(target, predicted, epsilon=1e-10):
+  return -(target / (np.clip(predicted, epsilon, 1 - epsilon) + epsilon))
 
-  predicted = np.clip(predicted, epsilon, 1 - epsilon)
-  gradient  = -target / predicted
-  return gradient / np.size(target)
+# def cross_entropy_error(target, predicted, epsilon = 1e-10):
+#   predicted = np.clip(predicted, epsilon, 1 - epsilon)
+#   losses = -np.sum(target * np.log(predicted), axis = 1)
+#   return np.mean(losses)
+
+# def cross_entropy_error_gradient(target, predicted, epsilon = 1e-10):
+#   return -target / np.clip(predicted, epsilon, 1 - epsilon)
 
 def binary_cross_entropy_error(target, predicted):
   return np.mean(-target * np.log(predicted) - (1 - target) * np.log(1 - predicted))
